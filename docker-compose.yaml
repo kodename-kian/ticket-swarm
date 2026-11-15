@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:16
+    command: ["postgres", "-c", "max_connections=200"]
+    environment:
+      POSTGRES_PASSWORD: admin_dev
+      POSTGRES_DB: flashsale
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d flashsale"]
+      interval: 2s
+      retries: 15
+  
+  migrate:
+    image: migrate/migrate:v4.17.1
+    depends_on:
+      postgres: {condition: service_healthy}
+    volumes:
+      - ./migrations:/migrations:ro
+    command: ["-path=/migrations", "-database=postgres://postgres:admin_dev@postgres:5432/flashsale?sslmode=disable", "up"]
+    restart: "no"
+
+volumes:
+  pgdata:

@@ -89,6 +89,13 @@ The service must contain at least the following three tables:
 
 Where `holds` must be **unique** on `(tier_id, idempotency_id)`, and `orders` must be **unique** on `(hold_id)`.
 
+The following indexes are part of the schema, and every service version must use exactly this set so that benchmarks are comparable:
+
+- `holds_committed_idx`: Partial index on `holds(tier_id) WHERE state IN ('active','converted')`, which keeps the auditor's cost independent of run length.
+- `holds_expiry_idx`: Partial index on `holds(expires_at) WHERE state = 'active'`, which does the same for the expiry job.
+
+The unique constraints above add their own indexes.
+
 ### Hold States
 
 `holds.state` takes one of three values:
