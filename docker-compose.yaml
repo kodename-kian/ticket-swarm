@@ -21,6 +21,14 @@ services:
       - ./migrations:/migrations:ro
     command: ["-path=/migrations", "-database=postgres://postgres:admin_dev@postgres:5432/flashsale?sslmode=disable", "up"]
     restart: "no"
+  
+  auditor:
+    build: ./auditor
+    environment:
+      AUDITOR_DSN: postgres://auditor:auditor_dev@postgres:5432/flashsale
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    ports: ["9100:9100"]
 
 volumes:
   pgdata:

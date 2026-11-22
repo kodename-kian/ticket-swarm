@@ -120,12 +120,14 @@ A hold is created as `active`. A checkout on a `converted` hold returns the exis
 A separate process with its own read-only database role. It queries Postgres directly once per second and exports one Prometheus gauge per tier. It never calls the service and never reads `tiers.available`.
 
 ```sql
-SELECT t.id AS tier_id,
-       count(h.id) FILTER (WHERE h.state IN ('active','converted'))
-         - t.total_stock AS oversell
+SELECT t.id, COALESCE(c.n, 0) - t.total_stock
 FROM tiers t
-LEFT JOIN holds h ON h.tier_id = t.id
-GROUP BY t.id, t.total_stock;
+LEFT JOIN (
+  SELECT tier_id, count(*) AS n
+  FROM holds
+  WHERE state IN ('active','converted')
+  GROUP BY tier_id
+) c ON c.tier_id = t.id
 ```
 
 A value above zero is an invariant violation. A hold whose `expires_at` has passed but whose state is still `active` (the expiry job hasn't run yet) counts as committed, since its unit has not been returned.
